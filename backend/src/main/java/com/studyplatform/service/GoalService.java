@@ -67,7 +67,7 @@ public class GoalService {
         return goalRepository.findByUserId(user.getId())
                 .stream()
                 .map(goalMapper::toResponseDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional(readOnly = true)
