@@ -31,6 +31,10 @@ import { Link } from 'react-router-dom';
 // ─── Chave do localStorage para persistir o timer entre reloads ───
 const TIMER_STORAGE_KEY = 'study_platform_timer';
 
+// ─── Constantes de localização para o heatmap ────────────────────────
+const MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const DIAS_SEMANA_ABREV = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
 // ─── Tipos ───────────────────────────────────────────────────────────
 
 interface EstadoTimerSalvo {
@@ -38,6 +42,18 @@ interface EstadoTimerSalvo {
   startTimestamp: number;
   elapsedAtPause: number;
   isPaused: boolean;
+}
+
+interface DadosDia {
+  totalMins: number;
+  materias: { nome: string; cor: string; mins: number }[];
+}
+
+interface TooltipHeatmap {
+  dateStr: string;
+  dados: DadosDia | null;
+  mouseX: number;
+  mouseY: number;
 }
 
 // Tipo de cada entrada no gráfico empilhado
@@ -76,6 +92,9 @@ export default function Dashboard() {
   const [timerPausado, setTimerPausado] = useState(false);
   const [timerSegundos, setTimerSegundos] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // ─── Estado do tooltip do heatmap ────────────────────────────────────
+  const [heatmapTooltip, setHeatmapTooltip] = useState<TooltipHeatmap | null>(null);
 
   // ─── Estado do modal de confirmação de sessão (via timer) ─────────────
   const [modalTimerAberto, setModalTimerAberto] = useState(false);
@@ -381,6 +400,56 @@ export default function Dashboard() {
     );
   };
 
+  // ─── Dados do heatmap ─────────────────────────────────────────────────
+  const hoje = new Date();
+  const anoAtual = hoje.getFullYear();
+  const mesAtual = hoje.getMonth(); // 0-indexed
+  const hojeStr = `${anoAtual}-${String(mesAtual + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+
+  // Agrega minutos e matérias por dia (chave "YYYY-MM-DD")
+  const mapaDias = new Map<string, DadosDia>();
+  sessions.forEach(s => {
+    if (!s.sessionDate) return;
+    const [ano, mes] = s.sessionDate.split('-').map(Number);
+    if (ano !== anoAtual || mes - 1 !== mesAtual) return;
+    const atual = mapaDias.get(s.sessionDate) ?? { totalMins: 0, materias: [] };
+    atual.totalMins += s.duration;
+    const nome = s.subject?.subjectName ?? '—';
+    const cor = s.subject?.color ?? 'var(--primary)';
+    const matIdx = atual.materias.findIndex(m => m.nome === nome);
+    if (matIdx >= 0) atual.materias[matIdx].mins += s.duration;
+    else atual.materias.push({ nome, cor, mins: s.duration });
+    mapaDias.set(s.sessionDate, atual);
+  });
+
+  const maxMinsNoMes = Math.max(...Array.from(mapaDias.values()).map(d => d.totalMins), 1);
+  const diasNoMes = new Date(anoAtual, mesAtual + 1, 0).getDate();
+  const primeiroDiaSemana = new Date(anoAtual, mesAtual, 1).getDay(); // 0=Dom
+
+  const corCelulaDia = (mins: number): string => {
+    const ratio = mins / maxMinsNoMes;
+    if (ratio <= 0) return 'transparent';
+    if (ratio < 0.25) return 'rgba(99,102,241,0.25)';
+    if (ratio < 0.5)  return 'rgba(99,102,241,0.48)';
+    if (ratio < 0.75) return 'rgba(99,102,241,0.72)';
+    return 'rgba(99,102,241,0.95)';
+  };
+
+  // Células de padding antes do dia 1
+  const celulasHeatmap: ({ tipo: 'padding' } | { tipo: 'dia'; dia: number; dateStr: string })[] = [
+    ...Array.from({ length: primeiroDiaSemana }, () => ({ tipo: 'padding' as const })),
+    ...Array.from({ length: diasNoMes }, (_, i) => {
+      const dia = i + 1;
+      const dateStr = `${anoAtual}-${String(mesAtual + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+      return { tipo: 'dia' as const, dia, dateStr };
+    }),
+  ];
+  // Completa até múltiplo de 7
+  const resto = celulasHeatmap.length % 7;
+  if (resto !== 0) {
+    for (let i = 0; i < 7 - resto; i++) celulasHeatmap.push({ tipo: 'padding' });
+  }
+
   // ─── Dados para sessões recentes e metas ─────────────────────────────
   const recentSessions = [...sessions]
     .sort((a, b) => new Date(b.sessionDate).getTime() - new Date(a.sessionDate).getTime())
@@ -671,8 +740,60 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Coluna Direita: Metas Ativas */}
+          {/* Coluna Direita: Heatmap + Metas Ativas */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+            {/* ── Heatmap de Calendário Mensal ── */}
+            <div className="card heatmap-card">
+              <h2 className="card-title" style={{ marginBottom: '0.75rem', fontSize: '1rem' }}>
+                {MESES_PT[mesAtual]} {anoAtual}
+              </h2>
+
+              {/* Cabeçalho dos dias da semana */}
+              <div className="heatmap-grid">
+                {DIAS_SEMANA_ABREV.map(d => (
+                  <div key={d} className="heatmap-dia-semana">{d}</div>
+                ))}
+              </div>
+
+              {/* Grade de dias */}
+              <div className="heatmap-grid" style={{ marginTop: '2px' }}>
+                {celulasHeatmap.map((celula, idx) => {
+                  if (celula.tipo === 'padding') {
+                    return <div key={`pad-${idx}`} className="heatmap-celula heatmap-celula--padding" />;
+                  }
+                  const dados = mapaDias.get(celula.dateStr) ?? null;
+                  const temDados = dados !== null && dados.totalMins > 0;
+                  const eHoje = celula.dateStr === hojeStr;
+                  return (
+                    <div
+                      key={celula.dateStr}
+                      className={[
+                        'heatmap-celula',
+                        temDados ? 'heatmap-celula--com-dados' : '',
+                        eHoje ? 'heatmap-celula--hoje' : '',
+                      ].join(' ')}
+                      style={{ backgroundColor: temDados ? corCelulaDia(dados!.totalMins) : undefined }}
+                      onMouseEnter={e => setHeatmapTooltip({ dateStr: celula.dateStr, dados, mouseX: e.clientX, mouseY: e.clientY })}
+                      onMouseMove={e => setHeatmapTooltip(t => t ? { ...t, mouseX: e.clientX, mouseY: e.clientY } : null)}
+                      onMouseLeave={() => setHeatmapTooltip(null)}
+                    >
+                      {celula.dia}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Legenda de intensidade */}
+              <div className="heatmap-legenda">
+                <span>Menos</span>
+                {['rgba(99,102,241,0.15)','rgba(99,102,241,0.35)','rgba(99,102,241,0.60)','rgba(99,102,241,0.85)'].map((cor, i) => (
+                  <div key={i} className="heatmap-legenda-celula" style={{ backgroundColor: cor }} />
+                ))}
+                <span>Mais</span>
+              </div>
+            </div>
+
             <div className="card">
               <div className="flex-between" style={{ marginBottom: '1.25rem' }}>
                 <h2 className="card-title" style={{ margin: 0 }}>Metas Ativas</h2>
@@ -713,6 +834,39 @@ export default function Dashboard() {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── Tooltip do Heatmap (position:fixed — fora do card para não ser clipado) ── */}
+      {heatmapTooltip && (
+        <div
+          className="heatmap-tooltip"
+          style={{ left: heatmapTooltip.mouseX, top: heatmapTooltip.mouseY }}
+        >
+          <div className="heatmap-tooltip-data">
+            {(() => {
+              const [ano, mes, dia] = heatmapTooltip.dateStr.split('-');
+              return `${dia}/${mes}/${ano}`;
+            })()}
+          </div>
+          {heatmapTooltip.dados && heatmapTooltip.dados.totalMins > 0 ? (
+            <>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '5px' }}>
+                Total: <strong style={{ color: 'var(--text-primary)' }}>{formatarDuracao(heatmapTooltip.dados.totalMins)}</strong>
+              </div>
+              {heatmapTooltip.dados.materias.map(m => (
+                <div key={m.nome} style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: m.cor, flexShrink: 0 }} />
+                    {m.nome}
+                  </span>
+                  <span>{formatarDuracao(m.mins)}</span>
+                </div>
+              ))}
+            </>
+          ) : (
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Nenhuma sessão registrada</div>
+          )}
         </div>
       )}
 
