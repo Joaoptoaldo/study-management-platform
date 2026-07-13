@@ -42,4 +42,5 @@ public class AuthResponseDTO {
     private Long id;
     private String nameUser;
     private String email;
+    private Boolean premium;
 }

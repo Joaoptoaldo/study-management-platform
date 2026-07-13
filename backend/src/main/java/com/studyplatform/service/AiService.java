@@ -53,6 +53,10 @@ public class AiService {
         Subject subject = subjectRepository.findByIdAndUserId(subjectId, user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Matéria não encontrada"));
 
+        if (!Boolean.TRUE.equals(user.getPremium())) {
+            throw new BusinessException("upgrade_required");
+        }
+
         if (text == null || text.trim().isEmpty()) {
             throw new BusinessException("O texto para geração de flashcards não pode ser vazio.");
         }

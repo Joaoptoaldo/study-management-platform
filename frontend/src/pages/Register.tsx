@@ -40,8 +40,8 @@ export default function Register() {
         password,
       });
 
-      const { token, userName, userEmail } = response.data;
-      login(token, userName, userEmail);
+      const { token, userName, userEmail, premium } = response.data;
+      login(token, userName, userEmail, premium);
       navigate('/');
     } catch (err) {
       console.error(err);

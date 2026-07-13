@@ -41,6 +41,10 @@ public class User implements UserDetails {
     @Column(name = "creationDate", nullable = false, updatable = false)
     private LocalDateTime creationDate;
 
+    @Column(name = "premium", nullable = false)
+    @Builder.Default
+    private Boolean premium = false;
+
     @PrePersist
     public void prePersist() {
         this.creationDate = LocalDateTime.now();

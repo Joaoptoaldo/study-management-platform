@@ -34,6 +34,7 @@ export interface AuthResponse {
   token: string;
   userName: string;
   userEmail: string;
+  premium: boolean;
 }
 
 export interface Summary {
