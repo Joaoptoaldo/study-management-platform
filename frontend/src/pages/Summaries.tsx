@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { apiClient } from '../api/client';
-import type { Summary, Subject } from '../types';
+import type { Summary, Subject, SpringPage } from '../types';
 import { triggerConfetti } from '../utils/confetti';
 import { 
   Plus, 
@@ -309,12 +309,18 @@ export default function Summaries() {
   // Queries
   const { data: subjects = [], isLoading: isLoadingSubjects } = useQuery<Subject[]>({
     queryKey: ['subjects'],
-    queryFn: async () => (await apiClient.get<Subject[]>('/api/subjects')).data,
+    queryFn: async () => {
+      const res = await apiClient.get<SpringPage<Subject>>('/api/subjects?size=1000');
+      return res.data.content;
+    },
   });
 
   const { data: summaries = [], isLoading: isLoadingSummaries } = useQuery<Summary[]>({
     queryKey: ['summaries'],
-    queryFn: async () => (await apiClient.get<Summary[]>('/api/summaries')).data,
+    queryFn: async () => {
+      const res = await apiClient.get<SpringPage<Summary>>('/api/summaries?size=1000');
+      return res.data.content;
+    },
   });
 
   // Active Summary computation

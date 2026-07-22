@@ -1,20 +1,18 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '../api/client';
-import type { Flashcard, Subject } from '../types';
-import { 
-  Brain, 
-  Layers, 
-  HelpCircle, 
-  Trash2, 
-  Edit3, 
-  Plus, 
-  Check, 
-  RotateCcw, 
-  AlertCircle, 
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
   ArrowRight,
-  BookOpen
+  Brain,
+  Check,
+  Edit3,
+  HelpCircle,
+  Layers,
+  Plus,
+  RotateCcw,
+  Trash2
 } from 'lucide-react';
+import React, { useState } from 'react';
+import { apiClient } from '../api/client';
+import type { Flashcard, Subject, SpringPage } from '../types';
 
 export default function Flashcards() {
   const queryClient = useQueryClient();
@@ -36,12 +34,18 @@ export default function Flashcards() {
   // Queries
   const { data: subjects = [] } = useQuery<Subject[]>({
     queryKey: ['subjects'],
-    queryFn: async () => (await apiClient.get<Subject[]>('/api/subjects')).data,
+    queryFn: async () => {
+      const res = await apiClient.get<SpringPage<Subject>>('/api/subjects?size=1000');
+      return res.data.content;
+    },
   });
 
   const { data: allCards = [], isLoading: loadingAll } = useQuery<Flashcard[]>({
     queryKey: ['flashcards'],
-    queryFn: async () => (await apiClient.get<Flashcard[]>('/api/flashcards')).data,
+    queryFn: async () => {
+      const res = await apiClient.get<SpringPage<Flashcard>>('/api/flashcards?size=1000');
+      return res.data.content;
+    },
   });
 
   const { data: dueCards = [], isLoading: loadingDue } = useQuery<Flashcard[]>({
@@ -89,7 +93,7 @@ export default function Flashcards() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['flashcards'] });
       queryClient.invalidateQueries({ queryKey: ['flashcards-due'] });
-      
+
       // Prossiga para o próximo cartão
       setShowAnswer(false);
       setReviewedCount(c => c + 1);
@@ -177,16 +181,16 @@ export default function Flashcards() {
           </h1>
           <p className="subtitle">Lembre de tudo usando o Leitner System e repetição ativa</p>
         </div>
-        
+
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button 
+          <button
             className={`btn ${activeTab === 'review' ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => setActiveTab('review')}
           >
             <Layers size={16} />
             Revisar ({dueCards.length - currentIndex > 0 ? dueCards.length - currentIndex : 0})
           </button>
-          <button 
+          <button
             className={`btn ${activeTab === 'manage' ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => setActiveTab('manage')}
           >
@@ -238,21 +242,21 @@ export default function Flashcards() {
                 <span>Revisando: <strong>{currentIndex + 1}</strong> de {dueCards.length}</span>
                 <span>Restante: {dueCards.length - currentIndex}</span>
               </div>
-              
+
               <div className="progress-bar-container" style={{ height: '5px', marginBottom: '24px' }}>
-                <div 
-                  className="progress-bar-fill" 
-                  style={{ 
-                    width: `${((currentIndex) / dueCards.length) * 100}%`, 
+                <div
+                  className="progress-bar-fill"
+                  style={{
+                    width: `${((currentIndex) / dueCards.length) * 100}%`,
                     backgroundColor: 'var(--primary)',
                     transition: 'width 0.3s ease'
-                  }} 
+                  }}
                 />
               </div>
 
               {/* Cartão 3D Flip */}
               <div className="flashcard-container" style={{ perspective: '1000px', width: '100%', minHeight: '320px', marginBottom: '24px' }}>
-                <div 
+                <div
                   className={`flashcard-inner ${showAnswer ? 'flipped' : ''}`}
                   style={{
                     position: 'relative',
@@ -267,7 +271,7 @@ export default function Flashcards() {
                   onClick={() => setShowAnswer(!showAnswer)}
                 >
                   {/* FRENTE */}
-                  <div 
+                  <div
                     className="card flashcard-face flashcard-front"
                     style={{
                       position: 'absolute',
@@ -300,7 +304,7 @@ export default function Flashcards() {
                   </div>
 
                   {/* VERSO */}
-                  <div 
+                  <div
                     className="card flashcard-face flashcard-back"
                     style={{
                       position: 'absolute',
@@ -341,8 +345,8 @@ export default function Flashcards() {
               {/* Botões de Ação de Feedback */}
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                 {!showAnswer ? (
-                  <button 
-                    className="btn btn-primary" 
+                  <button
+                    className="btn btn-primary"
                     style={{ width: '100%', maxWidth: '280px' }}
                     onClick={() => setShowAnswer(true)}
                   >
@@ -351,24 +355,24 @@ export default function Flashcards() {
                   </button>
                 ) : (
                   <>
-                    <button 
-                      className="btn btn-danger" 
+                    <button
+                      className="btn btn-danger"
                       style={{ flex: 1 }}
                       onClick={() => handleReview('hard')}
                       disabled={reviewMutation.isPending}
                     >
                       Errei (Amanhã)
                     </button>
-                    <button 
-                      className="btn btn-primary" 
+                    <button
+                      className="btn btn-primary"
                       style={{ flex: 1 }}
                       onClick={() => handleReview('good')}
                       disabled={reviewMutation.isPending}
                     >
                       Bom
                     </button>
-                    <button 
-                      className="btn btn-success" 
+                    <button
+                      className="btn btn-success"
                       style={{ flex: 1, backgroundColor: 'var(--success)', color: 'white' }}
                       onClick={() => handleReview('easy')}
                       disabled={reviewMutation.isPending}
@@ -454,17 +458,17 @@ export default function Flashcards() {
                         </td>
                         <td style={{ textAlign: 'right' }}>
                           <div style={{ display: 'inline-flex', gap: '0.35rem' }}>
-                            <button 
-                              className="btn btn-secondary btn-sm" 
-                              style={{ padding: '0.35rem', borderRadius: 'var(--radius-sm)' }} 
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              style={{ padding: '0.35rem', borderRadius: 'var(--radius-sm)' }}
                               onClick={() => abrirEditar(card)}
                               title="Editar"
                             >
                               <Edit3 size={14} />
                             </button>
-                            <button 
-                              className="btn btn-danger btn-sm" 
-                              style={{ padding: '0.35rem', borderRadius: 'var(--radius-sm)' }} 
+                            <button
+                              className="btn btn-danger btn-sm"
+                              style={{ padding: '0.35rem', borderRadius: 'var(--radius-sm)' }}
                               onClick={() => { if (confirm('Tem certeza que deseja excluir este flashcard?')) deleteMutation.mutate(card.id); }}
                               title="Excluir"
                             >
@@ -492,7 +496,7 @@ export default function Flashcards() {
             <h2 className="modal-title" id="modal-title">
               {editingCard ? 'Editar Flashcard' : 'Novo Flashcard'}
             </h2>
-            
+
             {formError && (
               <div style={{ padding: '0.75rem 1rem', backgroundColor: 'var(--danger-glow)', border: '1px solid var(--danger)', borderRadius: 'var(--radius-md)', color: 'var(--danger)', marginBottom: '1rem', fontSize: '0.875rem' }}>
                 {formError}
@@ -502,11 +506,11 @@ export default function Flashcards() {
             <form onSubmit={handleSubmit}>
               <div className="form-group">
                 <label className="form-label" htmlFor="card-subject">Matéria Associada</label>
-                <select 
-                  id="card-subject" 
-                  className="form-input" 
-                  value={formSubjectId} 
-                  onChange={e => setFormSubjectId(e.target.value ? Number(e.target.value) : '')} 
+                <select
+                  id="card-subject"
+                  className="form-input"
+                  value={formSubjectId}
+                  onChange={e => setFormSubjectId(e.target.value ? Number(e.target.value) : '')}
                   required
                 >
                   <option value="" disabled>Selecione uma matéria</option>
@@ -518,37 +522,37 @@ export default function Flashcards() {
 
               <div className="form-group">
                 <label className="form-label" htmlFor="card-front">Frente / Pergunta</label>
-                <textarea 
-                  id="card-front" 
-                  className="form-input" 
+                <textarea
+                  id="card-front"
+                  className="form-input"
                   style={{ minHeight: '75px', resize: 'vertical' }}
-                  placeholder="Ex: Qual é a fórmula da fotossíntese?" 
-                  value={formFront} 
-                  onChange={e => setFormFront(e.target.value)} 
+                  placeholder="Ex: Qual é a fórmula da fotossíntese?"
+                  value={formFront}
+                  onChange={e => setFormFront(e.target.value)}
                   maxLength={500}
-                  required 
+                  required
                 />
               </div>
 
               <div className="form-group">
                 <label className="form-label" htmlFor="card-back">Verso / Resposta</label>
-                <textarea 
-                  id="card-back" 
-                  className="form-input" 
+                <textarea
+                  id="card-back"
+                  className="form-input"
                   style={{ minHeight: '75px', resize: 'vertical' }}
-                  placeholder="Ex: 6 CO2 + 6 H2O + Luz -> C6H12O6 + 6 O2" 
-                  value={formBack} 
-                  onChange={e => setFormBack(e.target.value)} 
+                  placeholder="Ex: 6 CO2 + 6 H2O + Luz -> C6H12O6 + 6 O2"
+                  value={formBack}
+                  onChange={e => setFormBack(e.target.value)}
                   maxLength={1000}
-                  required 
+                  required
                 />
               </div>
 
               <div className="modal-actions">
                 <button type="button" className="btn btn-secondary" onClick={fecharModal}>Cancelar</button>
-                <button 
-                  type="submit" 
-                  className="btn btn-primary" 
+                <button
+                  type="submit"
+                  className="btn btn-primary"
                   disabled={createMutation.isPending || updateMutation.isPending}
                 >
                   {createMutation.isPending || updateMutation.isPending ? 'Salvando...' : 'Salvar Cartão'}

@@ -3,7 +3,7 @@ import { useAuthStore } from '../store/authStore';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../api/client';
 import { calcularStreak } from '../utils/streak';
-import type { StudySession } from '../types';
+import type { StudySession, SpringPage } from '../types';
 import { 
   BookOpen, 
   LayoutDashboard, 
@@ -25,7 +25,10 @@ export default function Navbar() {
   // Busca as sessões de estudo para calcular o Streak diário
   const { data: sessions = [] } = useQuery<StudySession[]>({
     queryKey: ['sessions'],
-    queryFn: async () => (await apiClient.get<StudySession[]>('/api/study-sessions')).data,
+    queryFn: async () => {
+      const res = await apiClient.get<SpringPage<StudySession>>('/api/study-sessions?size=1000');
+      return res.data.content;
+    },
     enabled: !!isAuthenticated, // Só busca se estiver autenticado
   });
 

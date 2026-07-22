@@ -28,6 +28,61 @@ Para mais informações sobre a estrutura do projeto, consulte [docs/estrutura.m
 - **Recharts** (Visualização de métricas e gráficos)
 - **pdfjs-dist** (Leitor de PDFs com annotations integrado)
 
+## Pré-requisitos
+
+- Java 21
+- Maven 3.9+
+- MySQL 8+
+- Node.js 18+ e npm/yarn
+
+## Configuração
+
+1. Crie o banco de dados no MySQL:
+
+   ```sql
+   CREATE DATABASE studyplatform;
+   ```
+
+2. Copie o arquivo de exemplo para `.env` e preencha com seus dados locais:
+
+   - `SERVER_PORT`
+   - `DB_URL`
+   - `DB_USERNAME`
+   - `DB_PASSWORD`
+   - `JWT_SECRET`
+   - `JWT_EXPIRATION`
+
+3. Para o Frontend, navegue até a pasta `frontend` e configure o arquivo `.env`:
+   ```bash
+   VITE_API_URL=http://localhost:8080/api
+   ```
+
+4. Verifique se os arquivos `.env` continuam fora do Git. O repositório já ignora `.env` e `.env.*`.
+
+## Como executar
+
+### Backend
+
+```bash
+mvn spring-boot:run
+```
+
+A aplicação sobe, por padrão, em `http://localhost:8080`.
+
+## Swagger
+
+Depois de iniciar a aplicação, acesse:
+
+```text
+http://localhost:8080/swagger-ui.html
+```
+
+Para testar rotas protegidas:
+
+1. Faça login em `POST /api/auth/login`
+2. Copie o token JWT retornado
+3. Clique em `Authorize` no Swagger e informe `Bearer {seu_token}`
+
 ## Endpoints da API
 
 ### Autenticação (`/api/auth`)

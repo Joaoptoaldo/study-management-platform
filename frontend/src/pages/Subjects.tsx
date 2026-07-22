@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { apiClient } from '../api/client';
-import type { Subject, Summary } from '../types';
+import type { Subject, Summary, SpringPage } from '../types';
 import { Plus, Edit2, Trash2, X, FolderOpen, FileText, ChevronDown, ChevronUp, ArrowRight } from 'lucide-react';
 
 const PREDEFINED_COLORS = [
@@ -35,8 +35,8 @@ export default function Subjects() {
   const { data: subjects = [], isLoading: loadingSubjects, error } = useQuery<Subject[]>({
     queryKey: ['subjects'],
     queryFn: async () => {
-      const response = await apiClient.get<Subject[]>('/api/subjects');
-      return response.data;
+      const response = await apiClient.get<SpringPage<Subject>>('/api/subjects?size=1000');
+      return response.data.content;
     },
   });
 
@@ -44,8 +44,8 @@ export default function Subjects() {
   const { data: summaries = [], isLoading: loadingSummaries } = useQuery<Summary[]>({
     queryKey: ['summaries'],
     queryFn: async () => {
-      const response = await apiClient.get<Summary[]>('/api/summaries');
-      return response.data;
+      const response = await apiClient.get<SpringPage<Summary>>('/api/summaries?size=1000');
+      return response.data.content;
     },
   });
 

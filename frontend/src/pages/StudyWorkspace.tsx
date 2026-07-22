@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { BookOpen, Upload, Plus, Sparkles } from 'lucide-react';
 import { apiClient } from '../api/client';
 import { triggerConfetti } from '../utils/confetti';
-import type { Subject, PDFFile, Summary } from '../types';
+import type { Subject, PDFFile, Summary, SpringPage } from '../types';
 
 // Importando componentes refatorados
 import PdfViewer from '../components/PdfViewer';
@@ -31,7 +31,10 @@ export default function StudyWorkspace() {
   // ─── Queries de dados ────────────────────────────────────────────────
   const { data: subjects = [] } = useQuery<Subject[]>({
     queryKey: ['subjects'],
-    queryFn: async () => (await apiClient.get<Subject[]>('/api/subjects')).data,
+    queryFn: async () => {
+      const res = await apiClient.get<SpringPage<Subject>>('/api/subjects?size=1000');
+      return res.data.content;
+    },
   });
 
   const { data: pdfFiles = [] } = useQuery<PDFFile[]>({

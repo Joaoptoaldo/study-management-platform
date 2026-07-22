@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../api/client';
-import type { StudySession, Subject, Goal } from '../types';
+import type { StudySession, Subject, Goal, SpringPage } from '../types';
 import { Clock, BookOpen, Target, CheckCircle, Flame } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -18,17 +18,26 @@ export default function Dashboard() {
   // ─── Queries de dados ────────────────────────────────────────────────
   const { data: sessions = [], isLoading: loadingSessions } = useQuery<StudySession[]>({
     queryKey: ['sessions'],
-    queryFn: async () => (await apiClient.get<StudySession[]>('/api/study-sessions')).data,
+    queryFn: async () => {
+      const res = await apiClient.get<SpringPage<StudySession>>('/api/study-sessions?size=1000');
+      return res.data.content;
+    },
   });
 
   const { data: subjects = [], isLoading: loadingSubjects } = useQuery<Subject[]>({
     queryKey: ['subjects'],
-    queryFn: async () => (await apiClient.get<Subject[]>('/api/subjects')).data,
+    queryFn: async () => {
+      const res = await apiClient.get<SpringPage<Subject>>('/api/subjects?size=1000');
+      return res.data.content;
+    },
   });
 
   const { data: goals = [], isLoading: loadingGoals } = useQuery<Goal[]>({
     queryKey: ['goals'],
-    queryFn: async () => (await apiClient.get<Goal[]>('/api/goals')).data,
+    queryFn: async () => {
+      const res = await apiClient.get<SpringPage<Goal>>('/api/goals?size=1000');
+      return res.data.content;
+    },
   });
 
   const isLoading = loadingSessions || loadingSubjects || loadingGoals;

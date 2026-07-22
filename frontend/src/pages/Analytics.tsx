@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../api/client';
-import type { StudySession, Subject } from '../types';
+import type { StudySession, Subject, SpringPage } from '../types';
 import {
   BarChart,
   Bar,
@@ -111,12 +111,18 @@ export default function Analytics() {
   // Queries
   const { data: sessions = [], isLoading: loadingSessions } = useQuery<StudySession[]>({
     queryKey: ['sessions'],
-    queryFn: async () => (await apiClient.get<StudySession[]>('/api/study-sessions')).data,
+    queryFn: async () => {
+      const res = await apiClient.get<SpringPage<StudySession>>('/api/study-sessions?size=1000');
+      return res.data.content;
+    },
   });
 
   const { data: subjects = [], isLoading: loadingSubjects } = useQuery<Subject[]>({
     queryKey: ['subjects'],
-    queryFn: async () => (await apiClient.get<Subject[]>('/api/subjects')).data,
+    queryFn: async () => {
+      const res = await apiClient.get<SpringPage<Subject>>('/api/subjects?size=1000');
+      return res.data.content;
+    },
   });
 
   const isLoading = loadingSessions || loadingSubjects;
