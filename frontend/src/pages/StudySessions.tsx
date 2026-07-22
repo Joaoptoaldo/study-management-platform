@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { apiClient } from '../api/client';
-import type { StudySession, Subject } from '../types';
+import type { StudySession, Subject, SpringPage } from '../types';
 import { Plus, Edit2, Trash2, X, Calendar, Clock, FileText, Filter } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -34,8 +34,8 @@ export default function StudySessions() {
   const { data: sessions = [], isLoading: isLoadingSessions } = useQuery<StudySession[]>({
     queryKey: ['sessions'],
     queryFn: async () => {
-      const response = await apiClient.get<StudySession[]>('/api/study-sessions');
-      return response.data;
+      const response = await apiClient.get<SpringPage<StudySession>>('/api/study-sessions?size=1000');
+      return response.data.content;
     },
   });
 
@@ -43,8 +43,8 @@ export default function StudySessions() {
   const { data: subjects = [], isLoading: isLoadingSubjects } = useQuery<Subject[]>({
     queryKey: ['subjects'],
     queryFn: async () => {
-      const response = await apiClient.get<Subject[]>('/api/subjects');
-      return response.data;
+      const response = await apiClient.get<SpringPage<Subject>>('/api/subjects?size=1000');
+      return response.data.content;
     },
   });
 

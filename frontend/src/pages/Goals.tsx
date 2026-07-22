@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { apiClient } from '../api/client';
-import type { Goal, Subject } from '../types';
+import type { Goal, Subject, SpringPage } from '../types';
 import { Plus, Edit2, Trash2, X, Target, Calendar } from 'lucide-react';
 
 interface GoalInput {
@@ -32,8 +32,8 @@ export default function Goals() {
   const { data: goals = [], isLoading: isLoadingGoals } = useQuery<Goal[]>({
     queryKey: ['goals'],
     queryFn: async () => {
-      const response = await apiClient.get<Goal[]>('/api/goals');
-      return response.data;
+      const response = await apiClient.get<SpringPage<Goal>>('/api/goals?size=1000');
+      return response.data.content;
     },
   });
 
@@ -41,8 +41,8 @@ export default function Goals() {
   const { data: subjects = [], isLoading: isLoadingSubjects } = useQuery<Subject[]>({
     queryKey: ['subjects'],
     queryFn: async () => {
-      const response = await apiClient.get<Subject[]>('/api/subjects');
-      return response.data;
+      const response = await apiClient.get<SpringPage<Subject>>('/api/subjects?size=1000');
+      return response.data.content;
     },
   });
 

@@ -60,3 +60,18 @@ export interface Flashcard {
   summaryId?: number;
   summaryTitle?: string;
 }
+
+/**
+ * Representa a resposta paginada do Spring Boot (Page<T>).
+ * Os endpoints GET list retornam esse formato, não arrays simples.
+ */
+export interface SpringPage<T> {
+  content: T[];
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
+}
