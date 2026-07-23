@@ -174,6 +174,19 @@ Cada seção descreve o que foi alterado, os arquivos afetados e o motivo da mud
   - `backend/src/main/java/com/studyplatform/goal/Goal.java`
 - **Motivo:** Evitar erro de truncamento de dados (`Incorrect datetime value: '0000-00-00 00:00:00'`) no MySQL durante a execução do DDL do Hibernate.
 
+### 6.5 Cache Distribuído com Redis & Fallback In-Memory
+- **O que foi feito:** Configurada dependência do Redis no backend e criada a classe `CacheConfig.java` com TTLs especializados por cache: `studySessions` (1 hora), `leaderboard` (5 minutos) e `aiContent` (24 horas). Adicionado fallback automático para o Spring in-memory `ConcurrentMapCacheManager` se o Redis estiver inacessível. Métodos de listagem, zona de aprendizado e geração de IA foram anotados com `@Cacheable` (utilizando hashes MD5 para chaves de texto longo) e `@CacheEvict` para as mutações correspondentes.
+- **Arquivos afetados:**
+  - `backend/pom.xml`
+  - `backend/src/main/java/com/studyplatform/shared/config/CacheConfig.java` *(novo)*
+  - `backend/src/main/java/com/studyplatform/session/StudySessionService.java`
+  - `backend/src/main/java/com/studyplatform/analytics/LearningZoneService.java`
+  - `backend/src/main/java/com/studyplatform/ai/AiService.java`
+  - `backend/src/main/java/com/studyplatform/examprep/QuizAttemptService.java`
+  - `backend/src/main/java/com/studyplatform/examprep/ExamSimulationService.java`
+  - `docker-compose.yml`
+- **Motivo:** Otimizar a performance do sistema reduzindo requisições repetitivas ao banco MySQL e chamadas de custo elevado à API do Gemini, garantindo portabilidade de desenvolvimento em ambientes locais sem Docker ativo.
+
 ---
 
 ## Estrutura rápida do projeto
