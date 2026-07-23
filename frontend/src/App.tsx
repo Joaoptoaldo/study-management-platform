@@ -18,6 +18,7 @@ import Quiz from './pages/Quiz';
 import Simulation from './pages/Simulation';
 import PublicShareView from './pages/PublicShareView';
 import Podcast from './pages/Podcast';
+import FocusMode from './pages/FocusMode';
 
 
 
@@ -98,6 +99,7 @@ export default function App() {
             <Route path="/quiz" element={<Quiz />} />
             <Route path="/simulation" element={<Simulation />} />
             <Route path="/podcast" element={<Podcast />} />
+            <Route path="/focus" element={<FocusMode />} />
           </Route>
 
 

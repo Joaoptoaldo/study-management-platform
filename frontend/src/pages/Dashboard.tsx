@@ -417,6 +417,10 @@ export default function Dashboard() {
                   <Square size={10} />
                   <span>Concluir</span>
                 </button>
+                <Link to="/focus" className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid rgba(139, 92, 246, 0.3)', color: 'var(--primary)' }}>
+                  <Sparkles size={11} />
+                  <span>Modo Imersivo</span>
+                </Link>
               </div>
             </div>
 
