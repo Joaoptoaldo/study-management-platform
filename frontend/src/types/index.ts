@@ -10,6 +10,7 @@ export interface Subject {
   subjectName: string;
   subjectDescription?: string;
   color?: string;
+  examPrepId?: number;
 }
 
 export interface StudySession {
@@ -89,9 +90,11 @@ export interface PDFFile {
 }
 
 export interface FileAnnotation {
-  id: number;
-  pageNumber: number;
-  notes: string;
-  fileId: number;
+  id?: number;
+  pageNumber?: number;
+  notes?: string;
+  fileId?: number;
   createdAt?: string;
+  type?: string;
+  content: string;
 }

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../api/client';
 import type { ExamPrep, Subject, Flashcard, Summary } from '../types';
-import { Play, Pause, X, Sparkles, Check, AlertTriangle, MessageSquare, BookOpen, Brain, RefreshCw } from 'lucide-react';
+import { Play, Pause, X, Sparkles, Check, AlertTriangle, MessageSquare, BookOpen, Brain, RefreshCw, Headphones } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { triggerConfetti } from '../utils/confetti';
 
@@ -68,7 +68,7 @@ export default function FocusMode() {
       const examSubjects = (await apiClient.get<Subject[]>(`/api/subjects`)).data
         .filter(s => s.examPrepId === selectedExamPrepId)
         .map(s => s.id);
-      return res.data.filter(f => examSubjects.includes(f.subjectId));
+      return res.data.filter(f => f.subject && examSubjects.includes(f.subject.id));
     },
     enabled: isSessionActive && !!selectedExamPrepId && studyTab === 'flashcards',
   });
@@ -82,7 +82,7 @@ export default function FocusMode() {
       const examSubjects = (await apiClient.get<Subject[]>(`/api/subjects`)).data
         .filter(s => s.examPrepId === selectedExamPrepId)
         .map(s => s.id);
-      return res.data.filter(s => examSubjects.includes(s.subjectId));
+      return res.data.filter(s => s.subject && examSubjects.includes(s.subject.id));
     },
     enabled: isSessionActive && !!selectedExamPrepId && studyTab === 'summaries',
   });
@@ -115,9 +115,8 @@ export default function FocusMode() {
     }
   });
 
-  // ─── Lógica do Cronômetro ─────────────────────────────────────────────
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
+    let interval: any = null;
     if (isSessionActive && isRunning && timeLeft > 0) {
       interval = setInterval(() => {
         setTimeLeft(prev => prev - 1);

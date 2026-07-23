@@ -15,7 +15,7 @@ export default function Dashboard() {
   // ─── Timer State ───
   const [time, setTime] = useState(1500); // 25 min default
   const [isRunning, setIsRunning] = useState(false);
-  const [timerInterval, setTimerInterval] = useState<NodeJS.Timeout | null>(null);
+  const [timerInterval, setTimerInterval] = useState<any | null>(null);
   const [selectedSubject, setSelectedSubject] = useState<number | ''>('');
 
   // ─── Queries ───
@@ -226,7 +226,7 @@ export default function Dashboard() {
   const activeExam = examPreps.find(e => e.status === 'ACTIVE') || examPreps[0];
   const totalMinutes = sessions.reduce((acc, s) => acc + s.duration, 0);
   const totalHours = (totalMinutes / 60).toFixed(1);
-  const completedGoals = goals.filter(g => g.progress >= g.objectiveHours).length;
+  const completedGoals = goals.filter(g => (g.progress ?? 0) >= (g.objectiveHours ?? 0)).length;
   const activeGoalsCount = goals.length - completedGoals;
 
   const streak = (() => {
@@ -452,7 +452,7 @@ export default function Dashboard() {
                     <span className="badge" style={{ backgroundColor: 'rgba(16, 185, 129, 0.15)', color: 'var(--success)', fontSize: '9px', padding: '1px 6px' }}>Público</span>
                   )}
                 </div>
-                <h3 style={{ fontSize: '21px', fontWeight: 900, color: 'var(--text-primary)', margin: 0, tracking: '-0.02em' }}>{activeExam.title}</h3>
+                <h3 style={{ fontSize: '21px', fontWeight: 900, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>{activeExam.title}</h3>
                 
                 <span style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Clock size={14} className="text-warning" />

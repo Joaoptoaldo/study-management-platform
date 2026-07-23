@@ -253,7 +253,7 @@ export default function SummaryEditor({
         <button type="button" className="toolbar-btn" onClick={() => document.execCommand('underline')} title="Sublinhado">U</button>
         <div className="toolbar-separator" style={{ width: '1px', height: '18px', backgroundColor: 'var(--border-color)', margin: '0 6px' }} />
         <button type="button" className="toolbar-btn" onClick={() => document.execCommand('insertUnorderedList')} title="Lista Sem Ordenação">List</button>
-        <button type="button" className="toolbar-btn" onClick={() => document.execCommand('formatBlock', '<blockquote>')} title="Citação">Quote</button>
+        <button type="button" className="toolbar-btn" onClick={() => document.execCommand('formatBlock', false, '<blockquote>')} title="Citação">Quote</button>
         <div className="toolbar-separator" style={{ width: '1px', height: '18px', backgroundColor: 'var(--border-color)', margin: '0 6px' }} />
         
         {/* Hidden inputs for uploading */}

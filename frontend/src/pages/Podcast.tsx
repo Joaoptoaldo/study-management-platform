@@ -181,7 +181,7 @@ export default function Podcast() {
           <ArrowLeft size={16} />
         </Link>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text-primary)', tracking: '-0.02em', margin: 0 }}>
+          <h1 style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: 0 }}>
             🎧 Podcast de Estudo Inteligente
           </h1>
           <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>

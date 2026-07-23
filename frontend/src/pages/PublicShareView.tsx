@@ -65,7 +65,7 @@ export default function PublicShareView() {
       <header style={{ padding: '16px 24px', backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <BookOpen size={24} style={{ color: 'var(--primary)' }} />
-          <span style={{ fontSize: '18px', fontWeight: 900, tracking: '-0.02em' }}>StudyFlow</span>
+          <span style={{ fontSize: '18px', fontWeight: 900, letterSpacing: '-0.02em' }}>StudyFlow</span>
           <span className="badge" style={{ backgroundColor: 'var(--primary-glow)', color: 'var(--primary)', fontSize: '10px', padding: '2px 8px', borderRadius: '12px' }}>Compartilhado</span>
         </div>
         <Link to="/register" className="btn btn-secondary btn-sm" style={{ margin: 0 }}>

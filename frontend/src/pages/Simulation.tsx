@@ -108,6 +108,12 @@ export default function Simulation() {
     }
   });
 
+  const handleStartSimulation = () => {
+    if (selectedExamPrepId) {
+      startSimulationMutation.mutate(Number(selectedExamPrepId));
+    }
+  };
+
   const finishSimulationMutation = useMutation({
     mutationFn: async (payload: { id: number; answers: Record<number, 'A' | 'B' | 'C' | 'D' | 'E'> }) => {
       const formattedAnswers: Record<string, string> = {};
