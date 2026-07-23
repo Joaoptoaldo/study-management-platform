@@ -3,6 +3,7 @@ import com.studyplatform.subject.Subject;
 import com.studyplatform.user.User;
 import jakarta.persistence.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -10,6 +11,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 // Representa uma meta de estudo. O Subject é opcional:
 // o usuário pode criar metas gerais (ex: "estudar 100h no mês") sem vincular a uma matéria.
@@ -21,6 +25,7 @@ import lombok.ToString;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
+@EntityListeners(AuditingEntityListener.class)
 @Table(name = "goals")
 public class Goal {
 
@@ -32,13 +37,11 @@ public class Goal {
     @Column(name = "title", nullable = false)
     private String title;
 
-    // Horas já estudadas — começa em 0 e é atualizado conforme o usuário avança
-    @Column(name = "progress", nullable = false)
-    private Double progress;
+    @Column(name = "target_mastery", nullable = false)
+    private Integer targetMastery;
 
-    // Quantidade de horas que o usuário quer atingir
-    @Column(name = "objectiveHours", nullable = false)
-    private Double objectiveHours;
+    @Column(name = "current_mastery", nullable = false)
+    private Integer currentMastery;
 
     @Column(name = "startDateGoal", nullable = false)
     private LocalDate startDateGoal;
@@ -51,31 +54,43 @@ public class Goal {
     @ToString.Exclude
     private User user;
 
-    // Subject opcional — nullable = true é o padrão, mas deixamos explícito pra ficar claro
+    // Subject opcional
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "subject_id", nullable = true)
     @ToString.Exclude
     private Subject subject;
 
+    // ExamPrep opcional/associada
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "exam_prep_id", nullable = true)
+    @ToString.Exclude
+    private com.studyplatform.examprep.ExamPrep examPrep;
+
+    @CreatedDate
+    @Column(name = "created_at", nullable = true, updatable = false)
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    @Column(name = "updated_at", nullable = true)
+    private LocalDateTime updatedAt;
+
     /**
-     * Calcula o percentual de conclusão da meta com base no progresso atual.
-     * Retorna um valor arredondado com duas casas decimais, limitado a 100%.
+     * Retorna a porcentagem de conclusão com base no progresso de domínio atual.
      */
     public double getCompletionPercentage() {
-        if (objectiveHours == null || objectiveHours <= 0) {
+        if (targetMastery == null || targetMastery <= 0) {
             return 0.0;
         }
-        double percentage = (progress / objectiveHours) * 100.0;
+        double current = currentMastery == null ? 0.0 : currentMastery.doubleValue();
+        double percentage = (current / targetMastery.doubleValue()) * 100.0;
         percentage = Math.min(percentage, 100.0);
         return Math.round(percentage * 100.0) / 100.0;
     }
 
     /**
-     * Adiciona progresso em horas a esta meta.
+     * Atualiza o domínio atual da meta.
      */
-    public void addProgress(double hours) {
-        if (hours > 0) {
-            this.progress = (this.progress == null ? 0.0 : this.progress) + hours;
-        }
+    public void updateMastery(int currentMastery) {
+        this.currentMastery = Math.clamp(currentMastery, 0, 100);
     }
 }

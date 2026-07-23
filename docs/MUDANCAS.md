@@ -144,12 +144,50 @@ Cada seção descreve o que foi alterado, os arquivos afetados e o motivo da mud
 
 ---
 
-## Sessão 6 — Documentação: Estrutura atual do projeto
+## Sessão 6 — Preparação de Exame, Compartilhamento Social e Tutor Virtual RAG
 
-### 6.1 Revisão/atualização do diagrama da estrutura
-- **O que foi feito:** Atualizado/revisado o desenho da estrutura do projeto em `docs/estrutura.md` para refletir com mais fidelidade a organização real do backend (incluindo `config/` e `dto/request` + `dto/response`) e do frontend (incluindo `App.tsx`, `main.tsx`, `assets/`, `utils/`).
+### 6.1 Assistente de Onboarding (ExamPrep Wizard)
+- **O que foi feito:** Se o usuário não possui preparações para prova cadastradas, o Dashboard é substituído por um assistente em 3 passos: dados da prova, meta de acerto (0-100% via slider) e vinculação de matérias em lote. O clique final persiste o ExamPrep no banco e atualiza as matérias vinculadas.
 - **Arquivos afetados:**
-  - `docs/estrutura.md`
-- **Motivo:** Garantir que a documentação visual do layout do repositório esteja alinhada com o código existente, facilitando onboarding e manutenção.
+  - `frontend/src/pages/Dashboard.tsx`
+  - `frontend/src/types/index.ts`
+- **Motivo:** Automatizar e facilitar a criação de planos de estudo para provas com foco em maestria e metas integradas.
 
+### 6.2 Compartilhamento Social de Objetivos
+- **O que foi feito:** O card do exame ativo no Dashboard ganhou o botão "Compartilhar", que gera um token UUID público no backend e o salva na área de transferência. Uma rota pública e anônima `/public/share/:token` exibe o cronograma, maestria e contagem regressiva para visitantes.
+- **Arquivos afetados:**
+  - `frontend/src/pages/Dashboard.tsx`
+  - `frontend/src/pages/PublicShareView.tsx` *(novo)*
+  - `frontend/src/App.tsx`
+- **Motivo:** Permitir que o aluno compartilhe sua preparação de forma transparente, além de servir como atração para novos usuários.
+
+### 6.3 Tutor Virtual Flutuante (RAG)
+- **O que foi feito:** Um widget flutuante rosa no canto inferior do Dashboard abre um chat interativo conectado à API `/api/v1/chat/ask` do backend. As dúvidas são resolvidas recuperando trechos dos PDFs carregados e citando fontes automaticamente.
+- **Arquivos afetados:**
+  - `frontend/src/pages/Dashboard.tsx`
+- **Motivo:** Reduzir a carga cognitiva do estudante ao permitir que tire dúvidas em tempo real de forma restrita e contextualizada ao seu material de estudo.
+
+### 6.4 Correção: Nullability de Auditoria no MySQL
+- **O que foi feito:** Alterada a configuração dos campos de auditoria `@CreatedDate` e `@LastModifiedDate` de `nullable = false` para `nullable = true`.
+- **Arquivos afetados:**
+  - `backend/src/main/java/com/studyplatform/subject/Subject.java`
+  - `backend/src/main/java/com/studyplatform/goal/Goal.java`
+- **Motivo:** Evitar erro de truncamento de dados (`Incorrect datetime value: '0000-00-00 00:00:00'`) no MySQL durante a execução do DDL do Hibernate.
+
+### 6.5 Cache Distribuído com Redis & Fallback In-Memory
+- **O que foi feito:** Configurada dependência do Redis no backend e criada a classe `CacheConfig.java` com TTLs especializados por cache: `studySessions` (1 hora), `leaderboard` (5 minutos) e `aiContent` (24 horas). Adicionado fallback automático para o Spring in-memory `ConcurrentMapCacheManager` se o Redis estiver inacessível. Métodos de listagem, zona de aprendizado e geração de IA foram anotados com `@Cacheable` (utilizando hashes MD5 para chaves de texto longo) e `@CacheEvict` para as mutações correspondentes.
+- **Arquivos afetados:**
+  - `backend/pom.xml`
+  - `backend/src/main/java/com/studyplatform/shared/config/CacheConfig.java` *(novo)*
+  - `backend/src/main/java/com/studyplatform/session/StudySessionService.java`
+  - `backend/src/main/java/com/studyplatform/analytics/LearningZoneService.java`
+  - `backend/src/main/java/com/studyplatform/ai/AiService.java`
+  - `backend/src/main/java/com/studyplatform/examprep/QuizAttemptService.java`
+  - `backend/src/main/java/com/studyplatform/examprep/ExamSimulationService.java`
+  - `docker-compose.yml`
+- **Motivo:** Otimizar a performance do sistema reduzindo requisições repetitivas ao banco MySQL e chamadas de custo elevado à API do Gemini, garantindo portabilidade de desenvolvimento em ambientes locais sem Docker ativo.
+
+---
+
+## Estrutura rápida do projeto
 

@@ -37,6 +37,9 @@ class GoalServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private GoalMapper goalMapper;
     @Mock private StudySessionRepository studySessionRepository;
+    @Mock private com.studyplatform.examprep.ExamPrepRepository examPrepRepository;
+    @Mock private com.studyplatform.examprep.ExamSimulationRepository examSimulationRepository;
+    @Mock private com.studyplatform.examprep.QuizAttemptRepository quizAttemptRepository;
     @Mock private SecurityContext securityContext;
     @Mock private Authentication authentication;
 
@@ -51,8 +54,8 @@ class GoalServiceTest {
     @BeforeEach
     void setUp() {
         SecurityContextHolder.setContext(securityContext);
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        when(authentication.getName()).thenReturn("joao@email.com");
+        lenient().when(securityContext.getAuthentication()).thenReturn(authentication);
+        lenient().when(authentication.getName()).thenReturn("joao@email.com");
 
         authenticatedUser = User.builder()
                 .id(1L).nameUser("João").email("joao@email.com").build();
@@ -62,7 +65,7 @@ class GoalServiceTest {
 
         goal = Goal.builder()
                 .id(1L).title("Meta Matemática")
-                .progress(10.0).objectiveHours(50.0)
+                .currentMastery(10).targetMastery(50)
                 .startDateGoal(LocalDate.now())
                 .endDateGoal(LocalDate.now().plusMonths(1))
                 .user(authenticatedUser).subject(subject)
@@ -70,7 +73,7 @@ class GoalServiceTest {
 
         validRequest = GoalRequestDTO.builder()
                 .title("Meta Matemática")
-                .progress(10.0).objectiveHours(50.0)
+                .currentMastery(10).targetMastery(50)
                 .startDateGoal(LocalDate.now())
                 .endDateGoal(LocalDate.now().plusMonths(1))
                 .subjectId(1L)
@@ -79,7 +82,7 @@ class GoalServiceTest {
         lenient().when(studySessionRepository.sumDurationBySubjectAndPeriod(any(), any(), any(), any())).thenReturn(600);
         lenient().when(studySessionRepository.sumDurationByUserAndPeriod(any(), any(), any())).thenReturn(600);
 
-        when(userRepository.findByEmail("joao@email.com"))
+        lenient().when(userRepository.findByEmail("joao@email.com"))
                 .thenReturn(Optional.of(authenticatedUser));
     }
 
@@ -109,7 +112,7 @@ class GoalServiceTest {
         // ARRANGE — request sem subjectId
         GoalRequestDTO requestWithoutSubject = GoalRequestDTO.builder()
                 .title("Meta Geral")
-                .progress(0.0).objectiveHours(100.0)
+                .currentMastery(0).targetMastery(100)
                 .startDateGoal(LocalDate.now())
                 .endDateGoal(LocalDate.now().plusMonths(3))
                 .subjectId(null) // meta geral
@@ -135,7 +138,7 @@ class GoalServiceTest {
         // ARRANGE — data de fim anterior à data de início
         GoalRequestDTO invalidRequest = GoalRequestDTO.builder()
                 .title("Meta Inválida")
-                .progress(0.0).objectiveHours(50.0)
+                .currentMastery(0).targetMastery(50)
                 .startDateGoal(LocalDate.now().plusDays(10))
                 .endDateGoal(LocalDate.now()) // fim antes do início
                 .build();
@@ -177,5 +180,33 @@ class GoalServiceTest {
 
         // ASSERT
         verify(goalRepository).delete(goal);
+    }
+
+    @Test
+    @DisplayName("recalculateGoalMastery → recalcula e salva metas da preparação de prova")
+    void recalculateGoalMastery_withValidExamPrep_updatesAndSavesGoals() {
+        // ARRANGE
+        Long examPrepId = 1L;
+        com.studyplatform.examprep.ExamSimulation simulation = com.studyplatform.examprep.ExamSimulation.builder()
+                .id(1L)
+                .score(80)
+                .status(com.studyplatform.examprep.SimulationStatus.COMPLETED)
+                .build();
+        com.studyplatform.examprep.QuizAttempt quizAttempt = com.studyplatform.examprep.QuizAttempt.builder()
+                .id(1L)
+                .score(60)
+                .build();
+
+        when(examSimulationRepository.findByExamPrepId(examPrepId)).thenReturn(java.util.List.of(simulation));
+        when(quizAttemptRepository.findByExamPrepId(examPrepId)).thenReturn(java.util.List.of(quizAttempt));
+        when(goalRepository.findByExamPrepId(examPrepId)).thenReturn(java.util.List.of(goal));
+
+        // ACT
+        goalService.recalculateGoalMastery(examPrepId);
+
+        // ASSERT
+        // (80 + 60) / 2 = 70
+        verify(goalRepository).save(goal);
+        org.junit.jupiter.api.Assertions.assertEquals(70, goal.getCurrentMastery());
     }
 }

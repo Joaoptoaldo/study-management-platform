@@ -15,7 +15,9 @@ import {
   Flame,
   TrendingUp,
   Brain,
-  HelpCircle
+  HelpCircle,
+  Compass,
+  Headphones
 } from 'lucide-react';
 
 export default function Navbar() {
@@ -53,7 +55,7 @@ export default function Navbar() {
           </Link>
           <Link to="/workspace" className={`navbar-link ${isActive('/workspace')}`}>
             <BookOpen size={18} />
-            <span>Workspace</span>
+            <span>Matérias & PDFs</span>
           </Link>
           <Link to="/summaries" className={`navbar-link ${isActive('/summaries')}`}>
             <FileText size={18} />
@@ -61,7 +63,19 @@ export default function Navbar() {
           </Link>
           <Link to="/flashcards" className={`navbar-link ${isActive('/flashcards')}`}>
             <Brain size={18} />
-            <span>Revisões</span>
+            <span>Flashcards</span>
+          </Link>
+          <Link to="/quiz" className={`navbar-link ${isActive('/quiz')}`}>
+            <HelpCircle size={18} />
+            <span>Quizzes</span>
+          </Link>
+          <Link to="/simulation" className={`navbar-link ${isActive('/simulation')}`}>
+            <Compass size={18} />
+            <span>Simulados</span>
+          </Link>
+          <Link to="/podcast" className={`navbar-link ${isActive('/podcast')}`}>
+            <Headphones size={18} />
+            <span>Podcasts</span>
           </Link>
           <Link to="/analytics" className={`navbar-link ${isActive('/analytics')}`}>
             <TrendingUp size={18} />
@@ -69,11 +83,11 @@ export default function Navbar() {
           </Link>
           <Link to="/sessions" className={`navbar-link ${isActive('/sessions')}`}>
             <Calendar size={18} />
-            <span>Sessões</span>
+            <span>Histórico</span>
           </Link>
           <Link to="/goals" className={`navbar-link ${isActive('/goals')}`}>
             <Target size={18} />
-            <span>Metas</span>
+            <span>Metas de Maestria</span>
           </Link>
           <Link to="/subjects" className={`navbar-link ${isActive('/subjects')}`}>
             <BookOpen size={18} />

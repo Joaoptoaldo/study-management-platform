@@ -1,11 +1,9 @@
 package com.studyplatform.ai;
 
 import com.studyplatform.examprep.ExamPrep;
-import com.studyplatform.user.User;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -25,34 +23,23 @@ public class AiGeneratedContent {
     @EqualsAndHashCode.Include
     private Long id;
 
-    @Column(nullable = false)
-    private String title;
-
-    @Column(columnDefinition = "TEXT", nullable = false)
-    private String content;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "content_type", nullable = false)
+    private ContentType contentType;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private ContentType type;
+    @Column(name = "difficulty_level", nullable = false)
+    private DifficultyLevel difficultyLevel;
 
-    @Enumerated(EnumType.STRING)
-    private DifficultyLevel difficulty;
-
-    @Column(name = "creation_date", nullable = false, updatable = false)
-    private LocalDateTime creationDate;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    @ToString.Exclude
-    private User user;
+    @Column(name = "content_json", nullable = false, columnDefinition = "TEXT")
+    private String contentJson;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "exam_prep_id", nullable = false)
     @ToString.Exclude
     private ExamPrep examPrep;
 
-    @PrePersist
-    public void prePersist() {
-        creationDate = LocalDateTime.now();
-    }
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
 }
