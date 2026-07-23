@@ -140,6 +140,43 @@ export default function Dashboard() {
     }
   });
 
+  // ─── Chat Tutor State ───
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<Array<{ sender: 'user' | 'tutor'; text: string; sources?: string[] }>>([
+    { sender: 'tutor', text: 'Olá! Faça qualquer pergunta sobre as matérias e PDFs vinculados ao seu objetivo ativo. Responderei baseando-me exclusivamente no seu material!' }
+  ]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+
+  const handleSendChatMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim() || chatLoading || !activeExam) return;
+
+    const userText = chatInput.trim();
+    setChatMessages(prev => [...prev, { sender: 'user', text: userText }]);
+    setChatInput('');
+    setChatLoading(true);
+
+    try {
+      const response = await apiClient.post<any>('/api/v1/chat/ask', {
+        examPrepId: activeExam.id,
+        question: userText
+      });
+      setChatMessages(prev => [...prev, { 
+        sender: 'tutor', 
+        text: response.data.answer || 'Não consegui formular uma resposta baseada no contexto fornecido.',
+        sources: response.data.sources 
+      }]);
+    } catch (err) {
+      setChatMessages(prev => [...prev, { 
+        sender: 'tutor', 
+        text: 'Erro ao conectar ao tutor. Por favor, certifique-se de que fez o upload de arquivos PDF para o seu exame na área de estudos.' 
+      }]);
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
   // ─── Timer Functions ───
   const toggleTimer = () => {
     if (isRunning) {
@@ -634,6 +671,111 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* ─── CHAT FLUTUANTE DO TUTOR INTELIGENTE ─── */}
+      <div style={{ position: 'fixed', bottom: '34px', right: '34px', zIndex: 999 }}>
+        {!chatOpen ? (
+          <button 
+            onClick={() => setChatOpen(true)}
+            style={{ 
+              backgroundColor: 'var(--ai)', 
+              color: 'white', 
+              borderRadius: '50px', 
+              padding: '13px 21px', 
+              border: 'none', 
+              boxShadow: '0 8px 34px rgba(236, 72, 153, 0.4)', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px', 
+              fontWeight: 700, 
+              cursor: 'pointer',
+              transition: 'transform 0.2s',
+              animation: 'pulse 2s infinite'
+            }}
+            onMouseOver={e => e.currentTarget.style.transform = 'scale(1.05)'}
+            onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+          >
+            <Sparkles size={18} />
+            <span>Perguntar ao Tutor</span>
+          </button>
+        ) : (
+          <div className="card animate-fadeIn" style={{ width: '380px', height: '480px', display: 'flex', flexDirection: 'column', padding: 0, boxShadow: 'var(--shadow-lg)', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-secondary)', overflow: 'hidden' }}>
+            {/* Header */}
+            <div style={{ padding: '16px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-tertiary)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ padding: '4px', borderRadius: '50%', backgroundColor: 'rgba(236, 72, 153, 0.15)', color: 'var(--ai)', display: 'flex' }}>
+                  <Sparkles size={16} />
+                </div>
+                <div>
+                  <h4 style={{ fontSize: '13px', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>Tutor Virtual IA</h4>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Respondendo via RAG</span>
+                </div>
+              </div>
+              <button 
+                onClick={() => setChatOpen(false)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Messages List */}
+            <div style={{ flex: 1, padding: '16px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {chatMessages.map((msg, i) => (
+                <div 
+                  key={i} 
+                  style={{ 
+                    alignSelf: msg.sender === 'user' ? 'flex-end' : 'flex-start',
+                    maxWidth: '80%',
+                    padding: '10px 14px',
+                    borderRadius: '16px',
+                    borderBottomRightRadius: msg.sender === 'user' ? '4px' : '16px',
+                    borderBottomLeftRadius: msg.sender === 'tutor' ? '4px' : '16px',
+                    backgroundColor: msg.sender === 'user' ? 'var(--primary)' : 'var(--bg-tertiary)',
+                    color: 'var(--text-primary)',
+                    fontSize: '13px',
+                    lineHeight: 1.5,
+                    border: msg.sender === 'tutor' ? '1px solid var(--border-color)' : 'none'
+                  }}
+                >
+                  <p style={{ margin: 0 }}>{msg.text}</p>
+                  {msg.sources && msg.sources.length > 0 && (
+                    <div style={{ marginTop: '8px', borderTop: '1px solid var(--border-color)', paddingTop: '4px', fontSize: '10px', color: 'var(--text-muted)' }}>
+                      Fonte: {msg.sources.join(', ')}
+                    </div>
+                  )}
+                </div>
+              ))}
+              {chatLoading && (
+                <div style={{ alignSelf: 'flex-start', padding: '10px 14px', borderRadius: '16px', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', fontSize: '13px', color: 'var(--text-muted)' }}>
+                  Tutor digitando...
+                </div>
+              )}
+            </div>
+
+            {/* Input Form */}
+            <form onSubmit={handleSendChatMessage} style={{ padding: '12px', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '8px', backgroundColor: 'var(--bg-tertiary)' }}>
+              <input 
+                type="text" 
+                className="form-input" 
+                placeholder={activeExam ? "Pergunte algo sobre seus PDFs..." : "Crie um objetivo para perguntar"}
+                disabled={!activeExam || chatLoading}
+                value={chatInput} 
+                onChange={e => setChatInput(e.target.value)} 
+                style={{ flex: 1, margin: 0, fontSize: '13px', height: '36px' }}
+              />
+              <button 
+                type="submit" 
+                className="btn btn-primary" 
+                disabled={!activeExam || !chatInput.trim() || chatLoading}
+                style={{ padding: '0 16px', height: '36px', minWidth: 'auto', margin: 0 }}
+              >
+                Enviar
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
 
     </div>
   );
