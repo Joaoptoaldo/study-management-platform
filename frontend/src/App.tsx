@@ -14,6 +14,13 @@ import Summaries from './pages/Summaries';
 import Analytics from './pages/Analytics';
 import Flashcards from './pages/Flashcards';
 import StudyWorkspace from './pages/StudyWorkspace';
+import Quiz from './pages/Quiz';
+import Simulation from './pages/Simulation';
+import PublicShareView from './pages/PublicShareView';
+import Podcast from './pages/Podcast';
+import FocusMode from './pages/FocusMode';
+
+
 
 // QueryClient para gerenciamento de estado das rotas protegidas e públicas
 const queryClient = new QueryClient({
@@ -70,6 +77,9 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
+          {/* Rota de Compartilhamento Pública */}
+          <Route path="/public/share/:token" element={<PublicShareView />} />
+
           {/* Rotas Públicas */}
           <Route element={<PublicLayout />}>
             <Route path="/login" element={<Login />} />
@@ -86,7 +96,13 @@ export default function App() {
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/flashcards" element={<Flashcards />} />
             <Route path="/workspace" element={<StudyWorkspace />} />
+            <Route path="/quiz" element={<Quiz />} />
+            <Route path="/simulation" element={<Simulation />} />
+            <Route path="/podcast" element={<Podcast />} />
+            <Route path="/focus" element={<FocusMode />} />
           </Route>
+
+
 
           {/* Redirecionamento de rotas desconhecidas */}
           <Route path="*" element={<Navigate to="/" replace />} />
