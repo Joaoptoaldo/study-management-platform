@@ -10,6 +10,7 @@ export interface Subject {
   subjectName: string;
   subjectDescription?: string;
   color?: string;
+  examPrepId?: number;
 }
 
 export interface StudySession {
@@ -23,11 +24,16 @@ export interface StudySession {
 export interface Goal {
   id: number;
   title: string;
-  progress: number; // in hours
-  objectiveHours: number; // in hours
+  progress?: number; // legacy
+  objectiveHours?: number; // legacy
+  currentMastery: number; // 0-100%
+  targetMastery: number; // 1-100%
   startDateGoal: string; // YYYY-MM-DD
   endDateGoal: string; // YYYY-MM-DD
+  completionPercentage: number;
   subject?: Subject;
+  examPrepId?: number;
+  examPrepTitle?: string;
 }
 
 export interface AuthResponse {
@@ -61,17 +67,34 @@ export interface Flashcard {
   summaryTitle?: string;
 }
 
-/**
- * Representa a resposta paginada do Spring Boot (Page<T>).
- * Os endpoints GET list retornam esse formato, não arrays simples.
- */
-export interface SpringPage<T> {
-  content: T[];
-  totalPages: number;
-  totalElements: number;
-  size: number;
-  number: number;
-  first: boolean;
-  last: boolean;
-  empty: boolean;
+export interface ExamPrep {
+  id: number;
+  title: string;
+  examDate: string;
+  targetScore: number;
+  status: string;
+  daysRemaining?: number;
+  userId?: number;
+  shareToken?: string;
+  isPublic?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface PDFFile {
+  id: number;
+  fileName: string;
+  fileUrl: string;
+  subjectId: number;
+  uploadedAt?: string;
+}
+
+export interface FileAnnotation {
+  id?: number;
+  pageNumber?: number;
+  notes?: string;
+  fileId?: number;
+  createdAt?: string;
+  type?: string;
+  content: string;
 }
