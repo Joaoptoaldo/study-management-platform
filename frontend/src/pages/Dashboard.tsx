@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { apiClient } from '../api/client';
 import type { StudySession, Subject, Goal, ExamPrep } from '../types';
-import { Clock, BookOpen, Target, CheckCircle, Flame, Calendar, Plus, Play, Pause, Square, Sparkles, AlertCircle } from 'lucide-react';
+import { Clock, BookOpen, Target, CheckCircle, Flame, Calendar, Plus, Play, Pause, Square, Sparkles, AlertCircle, Share2, RefreshCw, X, ChevronRight, ChevronLeft, Check, Award } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import WeeklyFocusCard from '../components/WeeklyFocusCard';
 import ActiveGoalsCard from '../components/ActiveGoalsCard';
 import RecentSessionsCard from '../components/RecentSessionsCard';
+import { triggerConfetti } from '../utils/confetti';
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
@@ -52,6 +53,77 @@ export default function Dashboard() {
         return [];
       }
     },
+  });
+
+  // ─── Wizard & Sharing States ───
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardStep, setWizardStep] = useState(1);
+  const [examTitle, setExamTitle] = useState('');
+  const [examDate, setExamDate] = useState(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 3);
+    return d.toISOString().split('T')[0];
+  });
+  const [targetScore, setTargetScore] = useState(80);
+  const [selectedSubjects, setSelectedSubjects] = useState<number[]>([]);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareLink, setShareLink] = useState('');
+
+  // ─── ExamPrep Mutations ───
+  const createExamPrepMutation = useMutation({
+    mutationFn: async (newExam: { title: string; examDate: string; targetScore: number; status: string }) => {
+      return (await apiClient.post<ExamPrep>('/api/v1/exam-preps', newExam)).data;
+    },
+    onSuccess: async (data) => {
+      // Associa matérias selecionadas ao novo ExamPrep
+      for (const subjId of selectedSubjects) {
+        const subj = subjects.find(s => s.id === subjId);
+        if (subj) {
+          await apiClient.put(`/api/v1/subjects/${subjId}`, {
+            subjectName: subj.subjectName,
+            subjectDescription: subj.subjectDescription,
+            color: subj.color,
+            examPrepId: data.id
+          });
+        }
+      }
+      queryClient.invalidateQueries({ queryKey: ['examPreps'] });
+      queryClient.invalidateQueries({ queryKey: ['subjects'] });
+      queryClient.invalidateQueries({ queryKey: ['goals'] });
+      setWizardOpen(false);
+      setWizardStep(1);
+      setExamTitle('');
+      setSelectedSubjects([]);
+      triggerConfetti();
+    },
+    onError: () => {
+      alert('Erro ao criar preparação de exame.');
+    }
+  });
+
+  const shareExamPrepMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return (await apiClient.post<ExamPrep>(`/api/v1/exam-preps/${id}/share`)).data;
+    },
+    onSuccess: (data) => {
+      const link = `${window.location.origin}/public/share/${data.shareToken}`;
+      setShareLink(link);
+      setShareModalOpen(true);
+      navigator.clipboard.writeText(link);
+    },
+    onError: () => {
+      alert('Erro ao compartilhar preparação.');
+    }
+  });
+
+  const revokeShareMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return (await apiClient.delete<ExamPrep>(`/api/v1/exam-preps/${id}/share`)).data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['examPreps'] });
+      alert('Plano de estudos tornado privado.');
+    }
   });
 
   // ─── Save Session Mutation ───
@@ -138,73 +210,251 @@ export default function Dashboard() {
     return st;
   })();
 
+  if (examPreps.length === 0 || wizardOpen) {
+    return (
+      <div className="dashboard-root" style={{ display: 'flex', flexDirection: 'column', gap: '20px', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 120px)', padding: '24px' }}>
+        <div className="card" style={{ maxWidth: '560px', width: '100%', padding: '34px', position: 'relative', border: '1px solid var(--border-color)' }}>
+          
+          {examPreps.length > 0 && (
+            <button className="modal-close" onClick={() => setWizardOpen(false)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+              <X size={18} />
+            </button>
+          )}
+
+          {/* Wizard Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '21px', borderBottom: '1px solid var(--border-color)', paddingBottom: '13px' }}>
+            <h2 style={{ fontSize: '21px', fontWeight: 800, color: 'var(--text-primary)' }}>🎯 Preparação para Prova</h2>
+            <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Passo {wizardStep} de 3</span>
+          </div>
+
+          {/* Steps Progress Indicator */}
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '34px' }}>
+            <div style={{ flex: 1, height: '4px', backgroundColor: wizardStep >= 1 ? 'var(--primary)' : 'var(--border-color)', borderRadius: '2px', transition: 'all 0.3s' }} />
+            <div style={{ flex: 1, height: '4px', backgroundColor: wizardStep >= 2 ? 'var(--primary)' : 'var(--border-color)', borderRadius: '2px', transition: 'all 0.3s' }} />
+            <div style={{ flex: 1, height: '4px', backgroundColor: wizardStep >= 3 ? 'var(--primary)' : 'var(--border-color)', borderRadius: '2px', transition: 'all 0.3s' }} />
+          </div>
+
+          {/* Step 1: Objetivo */}
+          {wizardStep === 1 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '21px' }}>
+              <div>
+                <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '4px' }}>Qual prova você vai realizar?</h3>
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Dê um nome para sua meta (ex: ENEM 2026, Concurso PRF, OAB).</p>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>Nome da Prova</label>
+                <input type="text" className="form-input" style={{ width: '100%' }} placeholder="Ex: ENEM 2026" value={examTitle} onChange={e => setExamTitle(e.target.value)} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>Data da Prova</label>
+                <input type="date" className="form-input" style={{ width: '100%' }} value={examDate} onChange={e => setExamDate(e.target.value)} />
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Meta de Domínio */}
+          {wizardStep === 2 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '21px', textAlign: 'center' }}>
+              <div>
+                <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '4px' }}>Qual é a sua meta de nota?</h3>
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Defina o percentual de acertos ideal para garantir sua aprovação.</p>
+              </div>
+              <div style={{ fontSize: '56px', fontWeight: 900, color: 'var(--primary)', margin: '13px 0', fontFamily: 'monospace' }}>
+                {targetScore}%
+              </div>
+              <input type="range" min="30" max="100" value={targetScore} onChange={e => setTargetScore(Number(e.target.value))} style={{ width: '100%', accentColor: 'var(--primary)', cursor: 'pointer' }} />
+              <div>
+                <span className="badge" style={{ padding: '6px 16px', borderRadius: '15px', backgroundColor: targetScore >= 80 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)', color: targetScore >= 80 ? 'var(--success)' : 'var(--warning)', fontSize: '12px', fontWeight: 700 }}>
+                  {targetScore >= 80 ? 'Meta: Excelente (Alta Competitividade)' : 'Meta: Aprovado (Segurança)'}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Vinculação de Matérias */}
+          {wizardStep === 3 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '21px' }}>
+              <div>
+                <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '4px' }}>Mapear matérias do edital</h3>
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Selecione quais das matérias abaixo fazem parte do seu plano de estudos para esta prova.</p>
+              </div>
+              
+              {subjects.length === 0 ? (
+                <div style={{ padding: '24px', textAlign: 'center', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', border: '1px dashed var(--border-color)' }}>
+                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Nenhuma matéria cadastrada no momento. Prossiga para criar seu objetivo e adicione matérias depois!</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto' }}>
+                  {subjects.map(s => (
+                    <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', cursor: 'pointer', border: selectedSubjects.includes(s.id) ? '1px solid var(--primary)' : '1px solid transparent', transition: 'all 0.2s' }}>
+                      <input type="checkbox" checked={selectedSubjects.includes(s.id)} onChange={() => {
+                        setSelectedSubjects(prev => prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]);
+                      }} />
+                      <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: s.color || 'var(--primary)' }} />
+                      <span style={{ fontSize: '13px', fontWeight: 600 }}>{s.subjectName}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Wizard Footer Navigation */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '34px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+            {wizardStep > 1 ? (
+              <button className="btn btn-secondary" onClick={() => setWizardStep(prev => prev - 1)} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <ChevronLeft size={16} />
+                <span>Voltar</span>
+              </button>
+            ) : (
+              examPreps.length > 0 ? (
+                <button className="btn btn-secondary" onClick={() => setWizardOpen(false)}>
+                  Cancelar
+                </button>
+              ) : <div />
+            )}
+
+            {wizardStep < 3 ? (
+              <button className="btn btn-primary" disabled={wizardStep === 1 && !examTitle.trim()} onClick={() => setWizardStep(prev => prev + 1)} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>Avançar</span>
+                <ChevronRight size={16} />
+              </button>
+            ) : (
+              <button className="btn btn-primary" onClick={() => createExamPrepMutation.mutate({ title: examTitle, examDate, targetScore, status: 'ACTIVE' })} disabled={createExamPrepMutation.isPending} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {createExamPrepMutation.isPending ? 'Salvando...' : 'Salvar e Começar!'}
+                <Check size={16} />
+              </button>
+            )}
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Render Active Dashboard View ───
+  const activeExamGoals = goals.filter(g => g.examPrepId === activeExam?.id);
+  const averageMastery = activeExamGoals.length > 0 
+    ? Math.round(activeExamGoals.reduce((sum, g) => sum + g.currentMastery, 0) / activeExamGoals.length)
+    : 0;
+  const strokeDashoffset = 251.2 - (251.2 * averageMastery) / 100;
+
   return (
     <div className="dashboard-root" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
-      {/* ─── TELA 1: HERO SECTION - SESSÃO DE FOCO ATIVA ─── */}
+      {/* ─── TELA 1: HERO SECTION - POMODORO + EXAME ATIVO ─── */}
       <div className="card" style={{ 
-        background: 'linear-gradient(135deg, hsla(258, 90%, 66%, 0.15), hsla(162, 72%, 45%, 0.08))',
-        border: '1px solid hsla(258, 90%, 66%, 0.25)',
+        background: 'linear-gradient(135deg, hsla(258, 90%, 66%, 0.12), hsla(162, 72%, 45%, 0.06))',
+        border: '1px solid hsla(258, 90%, 66%, 0.2)',
         padding: '24px',
         borderRadius: 'var(--radius-lg)',
-        boxShadow: 'var(--shadow-lg)',
-        position: 'relative'
+        boxShadow: 'var(--shadow-lg)'
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-          <div>
-            <span style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--primary)', fontWeight: 800 }}>Sessão de Foco Ativa</span>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '34px', alignItems: 'center' }}>
+          
+          {/* COLUNA ESQUERDA: TIMER POMODORO */}
+          <div style={{ borderRight: window.innerWidth > 768 ? '1px solid var(--border-color)' : 'none', paddingRight: window.innerWidth > 768 ? '24px' : 0 }}>
+            <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--primary)', fontWeight: 800 }}>Sessão de Foco Ativa</span>
             <div style={{ fontSize: '56px', fontWeight: 900, fontFamily: 'monospace', letterSpacing: '-0.04em', color: 'var(--text-primary)', margin: '4px 0', fontVariantNumeric: 'tabular-nums' }}>
               {formatTimer(time)}
             </div>
             
-            <div style={{ display: 'flex', alignItems: 'center', gap: '13px', marginTop: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '13px', marginTop: '13px', flexWrap: 'wrap' }}>
               <select 
                 style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '6px 12px', fontSize: '13px', color: 'var(--text-primary)' }}
                 value={selectedSubject}
                 onChange={e => setSelectedSubject(e.target.value ? Number(e.target.value) : '')}
               >
-                <option value="">Selecione uma Matéria...</option>
+                <option value="">Selecione a Matéria...</option>
                 {subjects.map(s => (
                   <option key={s.id} value={s.id}>{s.subjectName}</option>
                 ))}
               </select>
 
-              <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                Meta diária: 2h • Pomodoro 3/5
-              </span>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '13px' }}>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button className="btn btn-primary" onClick={toggleTimer} style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: '110px' }}>
-                {isRunning ? <Pause size={16} /> : <Play size={16} />}
-                <span>{isRunning ? 'Pausar' : 'Focar'}</span>
-              </button>
-              
-              <button className="btn btn-secondary" onClick={handleCompleteSession} disabled={time === 1500} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Square size={14} />
-                <span>Concluir</span>
-              </button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button className="btn btn-primary btn-sm" onClick={toggleTimer} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  {isRunning ? <Pause size={12} /> : <Play size={12} />}
+                  <span>{isRunning ? 'Pausar' : 'Focar'}</span>
+                </button>
+                <button className="btn btn-secondary btn-sm" onClick={handleCompleteSession} disabled={time === 1500} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Square size={10} />
+                  <span>Concluir</span>
+                </button>
+              </div>
             </div>
 
             {/* Indicadores de Pomodoro */}
-            <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+            <div style={{ display: 'flex', gap: '6px', marginTop: '13px' }}>
               {[1, 2, 3, 4, 5].map((dot) => (
                 <div 
                   key={dot} 
                   style={{ 
-                    width: '10px', 
-                    height: '10px', 
+                    width: '8px', 
+                    height: '8px', 
                     borderRadius: '50%', 
                     backgroundColor: dot <= 3 ? 'var(--success)' : 'var(--border-color)',
-                    boxShadow: dot <= 3 ? '0 0 8px var(--success)' : 'none',
+                    boxShadow: dot <= 3 ? '0 0 6px var(--success)' : 'none',
                     transition: 'all 0.3s ease'
                   }} 
                 />
               ))}
             </div>
           </div>
+
+          {/* COLUNA DIREITA: EXAME ATIVO & MAESTRIA */}
+          {activeExam && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '21px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--success)', fontWeight: 800 }}>Objetivo Ativo</span>
+                  {activeExam.isPublic && (
+                    <span className="badge" style={{ backgroundColor: 'rgba(16, 185, 129, 0.15)', color: 'var(--success)', fontSize: '9px', padding: '1px 6px' }}>Público</span>
+                  )}
+                </div>
+                <h3 style={{ fontSize: '21px', fontWeight: 900, color: 'var(--text-primary)', margin: 0, tracking: '-0.02em' }}>{activeExam.title}</h3>
+                
+                <span style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Clock size={14} className="text-warning" />
+                  {activeExam.daysRemaining !== undefined && activeExam.daysRemaining >= 0 
+                    ? `Faltam ${activeExam.daysRemaining} dias para a prova` 
+                    : `Prova concluída`
+                  }
+                </span>
+
+                <div style={{ display: 'flex', gap: '8px', marginTop: '13px', flexWrap: 'wrap' }}>
+                  <button className="btn btn-secondary btn-sm" onClick={() => shareExamPrepMutation.mutate(activeExam.id)} disabled={shareExamPrepMutation.isPending} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Share2 size={12} />
+                    <span>{activeExam.isPublic ? 'Copiar Link' : 'Compartilhar'}</span>
+                  </button>
+                  
+                  {activeExam.isPublic && (
+                    <button className="btn btn-secondary btn-sm" onClick={() => revokeShareMutation.mutate(activeExam.id)} disabled={revokeShareMutation.isPending} style={{ color: 'var(--text-muted)' }}>
+                      Privar
+                    </button>
+                  )}
+
+                  <button className="btn btn-secondary btn-sm" onClick={() => { setWizardOpen(true); setWizardStep(1); }} style={{ color: 'var(--primary)' }}>
+                    Novo Objetivo
+                  </button>
+                </div>
+              </div>
+
+              {/* Círculo de Maestria Geral SVG */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                <svg width="84" height="84" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="40" stroke="var(--border-color)" strokeWidth="8" fill="transparent" />
+                  <circle cx="50" cy="50" r="40" stroke="var(--success)" strokeWidth="8" fill="transparent"
+                          strokeDasharray="251.2" strokeDashoffset={strokeDashoffset} strokeLinecap="round"
+                          style={{ transition: 'stroke-dashoffset 0.5s ease' }} />
+                  <text x="50" y="56" textAnchor="middle" fill="var(--text-primary)" fontSize="20" fontWeight="bold">
+                    {averageMastery}%
+                  </text>
+                </svg>
+                <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>Maestria Geral</span>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
 
@@ -355,6 +605,35 @@ export default function Dashboard() {
           <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Você completou 3 sessões consecutivas de Pomodoro sem interrupções hoje.</p>
         </div>
       </div>
+      
+      {/* ─── MODAL DE COMPARTILHAMENTO DE EXAME ─── */}
+      {shareModalOpen && (
+        <div className="modal-overlay" style={{ zIndex: 10000, display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)' }}>
+          <div className="modal-content" style={{ maxWidth: '480px', padding: '24px', textAlign: 'center', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+              <div style={{ padding: '10px', borderRadius: '50%', backgroundColor: 'var(--primary-glow)', color: 'var(--primary)' }}>
+                <Share2 size={32} />
+              </div>
+            </div>
+            <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>Plano Compartilhado com Sucesso!</h3>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '8px 0 16px', lineHeight: 1.4 }}>
+              O link público para este plano de estudos foi copiado para a sua área de transferência. Qualquer pessoa poderá acessá-lo.
+            </p>
+            <input type="text" className="form-input" readOnly value={shareLink} style={{ textAlign: 'center', width: '100%', marginBottom: '21px', background: 'var(--bg-tertiary)' }} />
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => {
+                navigator.clipboard.writeText(shareLink);
+                alert('Link copiado!');
+              }}>
+                Copiar Novamente
+              </button>
+              <button className="btn btn-secondary" onClick={() => setShareModalOpen(false)}>
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

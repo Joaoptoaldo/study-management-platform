@@ -65,3 +65,33 @@ export interface Flashcard {
   summaryId?: number;
   summaryTitle?: string;
 }
+
+export interface ExamPrep {
+  id: number;
+  title: string;
+  examDate: string;
+  targetScore: number;
+  status: string;
+  daysRemaining?: number;
+  userId?: number;
+  shareToken?: string;
+  isPublic?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface PDFFile {
+  id: number;
+  fileName: string;
+  fileUrl: string;
+  subjectId: number;
+  uploadedAt?: string;
+}
+
+export interface FileAnnotation {
+  id: number;
+  pageNumber: number;
+  notes: string;
+  fileId: number;
+  createdAt?: string;
+}

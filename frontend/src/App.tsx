@@ -16,6 +16,7 @@ import Flashcards from './pages/Flashcards';
 import StudyWorkspace from './pages/StudyWorkspace';
 import Quiz from './pages/Quiz';
 import Simulation from './pages/Simulation';
+import PublicShareView from './pages/PublicShareView';
 
 
 
@@ -74,6 +75,9 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
+          {/* Rota de Compartilhamento Pública */}
+          <Route path="/public/share/:token" element={<PublicShareView />} />
+
           {/* Rotas Públicas */}
           <Route element={<PublicLayout />}>
             <Route path="/login" element={<Login />} />
