@@ -7,7 +7,6 @@ import org.springframework.scheduling.annotation.EnableAsync;
 // Ponto de entrada da aplicação.
 @SpringBootApplication
 @EnableAsync
-@EnableJpaAuditing
 public class StudyPlatformApplication {
 
     public static void main(String[] args) {
